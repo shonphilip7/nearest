@@ -1,0 +1,79 @@
+<?php
+
+  /**
+  * Implementing hook_schema
+  **/
+
+  function nearest_schema(){
+
+	
+	$schema['nearest_store_info'] = array(
+        'description' => 'A table for storing information of the nearest branches',
+        'fields' => array(
+            'store_id' => array(
+                'description' => 'Unique Store Id',
+                'type' => 'serial',
+                'not null' => TRUE,
+            ),
+            'store_name' => array(
+                'description' => 'The store name',
+                'type' => 'varchar',
+                'length' => '200',
+                'not null' => FALSE,
+            ),
+            'address' => array(
+                'description' => 'The store address',
+                'type' => 'varchar',
+                'length' => '200',
+                'not null' => TRUE,
+            ),
+            'city' => array(
+                'description' => 'City in which the store is located',
+                'type' => 'varchar',
+                'length' => '200',
+                'not null' => TRUE,
+            ),
+            'state' => array(
+                'description' => 'State in which the store is located',
+                'type' => 'varchar',
+                'length' => '200',
+                'not null' => TRUE,
+            ),
+            'zipcode' => array(
+                'description' => 'Zipcode in which the store is located',
+                'type' => 'varchar',
+                'length' => '200',
+                'not null' => FALSE,
+            ),
+            'country' => array(
+                'description' => 'Country in which the store is located',
+                'type' => 'varchar',
+                'length' => '200',
+                'not null' => TRUE,
+            ),
+            'phone' => array(
+                'description' => 'Phone number of the store',
+                'type' => 'varchar',
+                'length' => '200',
+                'not null' => FALSE,
+            ),
+            'latitude' => array(
+                'description' => 'Geographic latitude of the store',
+                'type' => 'varchar',
+                'length' => '100',
+                'not null' => TRUE,
+            ),
+            'longitude' => array(
+                'description' => 'Geographic longitude of the store',
+                'type' => 'varchar',
+                'length' => '100',
+                'not null' => TRUE,
+            ),
+        ),
+    'primary key' => array('store_id'),
+    );
+
+	
+	return $schema;
+	
+  }

@@ -1,0 +1,221 @@
+  <?php
+  /**
+   * @file
+   * Provides functionality for finding the nearest stores.
+   */
+ 
+  /**
+   * Implements hook_menu().
+   */
+
+  function nearest_menu() {
+	$items = array();
+
+    $items['admin/config/content/nearest'] = array(
+        'title' => 'Nearest',
+        'description' => 'Configuration for nearest module',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('nearest_form'),
+        'access arguments' => array('access administration pages'),
+        'type' => MENU_NORMAL_ITEM,
+    );
+	
+	$items['admin/config/content/map-api-key'] = array(
+        'title' => 'Google Map API Key',
+        'description' => 'Enter the key recieved from Google for the Map',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('api_key_form'),
+        'access arguments' => array('access administration pages'),
+        'type' => MENU_NORMAL_ITEM,
+    );
+	
+	$items['nearest-location'] = array(
+        'title' => 'Our Nearest Location',
+        'page callback' => 'nearest_page',
+        'access callback' => TRUE,
+    );
+
+  return $items;
+  }
+
+  /**
+   * Page callback: nearest settings
+   *
+   * @see nearest_menu()
+   */
+
+  function nearest_form($form, &$form_state){
+	 $form['nearest_store_name'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Store Name'),
+		//'#default_value' => variable_get('nearest_store_name', ''),
+		'#size' => 20,
+	 );
+	 $form['nearest_store_address'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Address'),
+		//'#default_value' => variable_get('nearest_store_address', ''),
+		'#size' => 50,
+		'#description' => t('The physical address of the store. No special chars (ex: !,@,#,$,% etc)'),
+		'#required' => TRUE,
+	 );
+	 $form['nearest_store_city'] = array(
+		'#type' => 'textfield',
+		'#title' => t('City'),
+		//'#default_value' => variable_get('nearest_store_city', ''),
+		'#size' => 20,
+		'#description' => t('The city where the store is located'),
+		'#required' => TRUE,
+	 );
+	 $form['nearest_store_state'] = array(
+		'#type' => 'textfield',
+		'#title' => t('State'),
+		//'#default_value' => variable_get('nearest_store_state', ''),
+		'#size' => 20,
+		'#description' => t('The state where the store is located'),
+		'#required' => TRUE,
+	 );
+	 $form['nearest_store_zipcode'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Zip Code'),
+		//'#default_value' => variable_get('nearest_store_zipcode', ''),
+		'#size' => 20, 
+		'#description' => t('The zip code of the area'),
+		'#required' => TRUE,
+	 );
+	 $form['nearest_store_country'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Country'),
+		//'#default_value' => variable_get('nearest_store_country', ''),
+		'#size' => 20,
+		'#description' => t('The country where the store is located'),
+		'#required' => TRUE,
+	 );
+	 $form['nearest_store_phone'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Phone number'),
+		//'#default_value' => variable_get('nearest_store_phone',''),
+		'#size' => 20,
+		'#description' => t('Contact number of the store'),
+	 );
+	 /*$form['#attached']['css'] = array(
+		drupal_get_path('module', 'let_it_snow') . '/css/let_it_snow.css',
+	 );*/
+	 $form['#attached']['js'] = array(
+		drupal_get_path('module', 'nearest') . '/js/nearest.js',
+	 );
+	  //return system_settings_form($form);
+	  $form['save'] = array(
+          '#type' => 'submit',
+          '#value' =>  'Save',
+          '#submit' =>  array('nearest_form_submit'),
+	  );
+	  return $form;
+  
+  }
+  
+  function api_key_form($form, &$form_state)
+  {
+	  $form['api_key'] = array(
+		'#type' => 'textfield',
+		'#title' => t('API Key'),
+		'#default_value' => variable_get('api_key', ''),
+		'#size' => 50,
+	  );
+	  
+	  return system_settings_form($form);
+  }
+  
+  /**
+  * Implements hook_form_submit().
+  */
+  function nearest_form_submit($form, $form_state){
+	  $store_name = $form_state['values']['nearest_store_name'];
+	  $address = $form_state['values']['nearest_store_address'];;
+	  $city = $form_state['values']['nearest_store_city'];
+	  $zipcode = $form_state['values']['nearest_store_zipcode'];
+	  $state = $form_state['values']['nearest_store_state'];
+	  $country = $form_state['values']['nearest_store_country'];
+	  $phone = $form_state['values']['nearest_store_phone'];
+	  
+	  //prepare address and city for google maps
+	  $formatted_address = str_replace(' ','+',$address);
+	  $formatted_city = str_replace(' ','+',$city);
+	  
+	  //get latitude and longitude of the address
+	  $geocode=@file_get_contents('https://maps.google.com/maps/api/geocode/json?address='.$formatted_address.'+'.$formatted_city.'&sensor=false');
+	  if ($geocode !== FALSE) {
+		  $output= json_decode($geocode);
+		  $latitude = $output->results[0]->geometry->location->lat;
+		  $longitude = $output->results[0]->geometry->location->lng;
+		  
+	  }
+	  
+	  db_insert('nearest_store_info')
+	  ->fields(array(
+          'store_name' => $store_name,
+		  'address' => $address,
+		  'city' => $city,
+		  'state' => $state,
+		  'zipcode' => $zipcode,
+		  'country' => $country,
+		  'phone' => $phone,
+		  'latitude' => $latitude,
+		  'longitude' => $longitude,
+      ))
+	  ->execute();
+      drupal_set_message("Successfully saved store details"); 
+	  
+  }
+  
+  /**
+  * Content of the location page
+  **/
+  function nearest_page(){
+      $output = array(
+          'first_para' => array(
+          '#type' => 'markup',
+          '#markup' => '<div class="wrap" style="margin:0px; padding:0px;"><div id="find-a-store"><div id="map" style="width: 100%; height: 90%"></div></div></div>',
+          ),
+     );
+     return $output;
+  }
+  
+  function nearest_init()
+  {
+	  if (request_path() == 'nearest-location') {
+		  $key = variable_get('api_key');
+		  drupal_add_js('jQuery(document).ready(function () { initMap(); });', array('type' => 'inline','scope' => 'footer'));
+		  drupal_add_js('
+		      var markers = [];
+              var infoWindow;
+              var locationSelect;
+			  
+			  function initMap() 
+              {
+                  var defaultLocaction = {lat: 41.8951062, lng: -87.9787094};
+                  map = new google.maps.Map(document.getElementById("map"), {
+                      center: defaultLocaction,
+                      zoom: 11,
+                      mapTypeId: "roadmap",
+                      mapTypeControlOptions: {style: google.maps.MapTypeControlStyle.DROPDOWN_MENU}
+                  });
+                  infoWindow = new google.maps.InfoWindow();
+
+                  searchButton = document.getElementById("searchButton").onclick = searchLocations;
+
+                  locationSelect = document.getElementById("locationSelect");
+                  locationSelect.onchange = function() 
+	              {
+                      var markerNum = locationSelect.options[locationSelect.selectedIndex].value;
+                      if (markerNum != "none") {
+                          google.maps.event.trigger(markers[markerNum], "click");
+                      }
+                  };
+              }
+		  ', array('type' => 'inline','scope' => 'footer'));
+		  //drupal_add_js(drupal_get_path('module', 'nearest') . '/js/map.js', array('scope'=>'footer'));
+		  drupal_add_js('https://maps.googleapis.com/maps/api/js?key='.$key.'&callback=initMap', array('type' => 'external', 'scope'=>'footer'));
+		  drupal_add_css(drupal_get_path('module', 'nearest') . '/css/nearest.css');
+	  }
+  }
